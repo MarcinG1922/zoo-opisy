@@ -19,11 +19,12 @@ Twój opis musi spełniać poniższe rygorystyczne wytyczne:
 - Wspomnij o KOMFORCIE właściciela (np. produkt nie brudzi mebli, nie wydziela nieprzyjemnego zapachu, nie hałasuje).
 
 4. STRUKTURA OPISU:
-- [Nagłówek] Chwytliwy, emocjonalny tytuł (np. z użyciem emoji).
+- [Nagłówek] Chwytliwy, emocjonalny tytuł (BEZ emoji).
 - [Wstęp] Krótki, 2-3 zdaniowy akapit przykuwający uwagę, skupiony na problemie/potrzebie (np. nuda, higiena zębów) i produkcie jako rozwiązaniu.
-- [Dlaczego warto wybrać...?] Wypunktowana lista (użyj emoji np. ✅, 🐾, ❤️) 4-5 głównych korzyści.
+- [Dlaczego warto wybrać...?] Wypunktowana lista 4-5 głównych korzyści. Każdy punkt <li> ZACZYNAJ od zielonego ptaszka ✅ (i tylko tego znaku, żadnych innych emoji).
 - [Bezpieczeństwo i zdrowie] Osobny, uspokajający akapit o tym, dlaczego to zdrowy i bezpieczny wybór.
-- [Wskazówki/Dawkowanie] Jak dobrać rozmiar lub jak bezpiecznie używać produktu.
+- [Dane techniczne / Specyfikacja] Jeśli w starym opisie są konkretne parametry (wymiary, waga, materiał, rozmiary, skład), przedstaw je w czytelnej TABELI HTML (<table> z <tr>, <th>, <td>). Tabela tylko z danych ze źródła - nie wymyślaj wartości.
+- [Wskazówki/Dawkowanie] Jak dobrać rozmiar lub jak bezpiecznie używać produktu. Jeśli produkt ma kilka rozmiarów/wariantów, możesz je zestawić w tabeli.
 
 5. SEKCJA FAQ NA KOŃCU:
 - Wygeneruj dokładnie 4 do 5 najczęściej zadawanych pytań (FAQ) dotyczących tego typu produktu i udziel na nie krótkich, uspokajających odpowiedzi (np. "Czy ten gryzak jest odpowiedni dla szczeniaka?", "Co zrobić, gdy zostanie mała końcówka gryzaka?").
@@ -35,8 +36,10 @@ Sformatuj całość czytelnie, używając pogrubień (<strong>) dla najważniejs
 - Wykorzystaj wszystkie konkretne dane ze starego opisu (wymiary, materiał, przeznaczenie, ostrzeżenia).
 
 ## FORMAT WYJŚCIA (bardzo ważne)
-- Zwróć WYŁĄCZNIE czysty kod HTML gotowy do wklejenia. Dozwolone tagi: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <b>, <em>. Emoji dozwolone w tekście.
+- Zwróć WYŁĄCZNIE czysty kod HTML gotowy do wklejenia. Dozwolone tagi: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <b>, <em>, <table>, <thead>, <tbody>, <tr>, <th>, <td>.
+- ZAKAZ EMOJI: nie używaj ŻADNYCH emoji ani znaków ozdobnych (bez 🐾, ❤️, 🐶, 🦴 itp.) - one źle wyświetlają się na stronie. JEDYNY dozwolony znak to zielony ptaszek ✅ i tylko na początku punktów listy korzyści.
 - NIE dodawaj bloków markdown (bez \`\`\`), NIE dodawaj tagów <html>, <head>, <body>. Bez komentarzy przed ani po.
+- Tabele: bez atrybutów style/class, prosty <table> z wierszami <tr> i komórkami <th>/<td>.
 - ROZMIESZCZENIE ZDJĘĆ: w treści rozmieść znaczniki zdjęć dokładnie w tej formie: [[IMG_1]], [[IMG_2]], ... aż do [[IMG_N]] (gdzie N podano niżej). Każdy znacznik użyj DOKŁADNIE RAZ, każdy w osobnej linii pomiędzy sekcjami tekstu (np. po wstępie, po liście korzyści, przed FAQ). Znaczniki zostaną automatycznie zamienione na prawdziwe zdjęcia ze starego opisu. Jeśli N = 0, nie wstawiaj żadnych znaczników.
 `;
 

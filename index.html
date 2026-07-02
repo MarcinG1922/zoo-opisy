@@ -689,8 +689,18 @@
         if (!used.has(idx)) { out += wrapImageSection(src) + '\n\n'; used.add(idx); appended++; }
       });
 
-      return { html: out.trim(), imagesUsed: used.size, appended };
+      let finalHtml = out.trim();
+      // FAQ rozwijane: nadaj klase i wstrzyknij jednorazowy <style> na plusik (+/-)
+      if (/<details/i.test(finalHtml)) {
+        finalHtml = finalHtml.replace(/<details(?![^>]*\bclass=)/gi, '<details class="zoo-faq"');
+        finalHtml = FAQ_STYLE + '\n' + finalHtml;
+      }
+      return { html: finalHtml, imagesUsed: used.size, appended };
     }
+
+    // Styl rozwijanego FAQ - plusik zamiast domyslnego trojkata. Jesli sklep
+    // wytnie <style>, zostaje natywne rozwijanie <details> (nadal dziala).
+    const FAQ_STYLE = '<style>details.zoo-faq{border:1px solid #d9d9d9;border-radius:6px;margin:8px 0;background:#fafafa}details.zoo-faq>summary{cursor:pointer;list-style:none;padding:10px 40px 10px 14px;font-weight:600;position:relative}details.zoo-faq>summary::-webkit-details-marker{display:none}details.zoo-faq>summary::after{content:"+";position:absolute;right:14px;color:#2e9e5b;font-weight:700;font-size:1.2em;line-height:1}details.zoo-faq[open]>summary::after{content:"–"}details.zoo-faq>*:not(summary){padding:0 14px 12px;margin:0}</style>';
 
     // ============== DOWNLOAD ==============
     function downloadResult() {

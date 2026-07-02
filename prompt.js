@@ -27,7 +27,14 @@ Twój opis musi spełniać poniższe rygorystyczne wytyczne:
 - [Wskazówki/Dawkowanie] Jak dobrać rozmiar lub jak bezpiecznie używać produktu. Jeśli produkt ma kilka rozmiarów/wariantów, możesz je zestawić w tabeli.
 
 5. SEKCJA FAQ NA KOŃCU:
-- Wygeneruj dokładnie 4 do 5 najczęściej zadawanych pytań (FAQ) dotyczących tego typu produktu i udziel na nie krótkich, uspokajających odpowiedzi (np. "Czy ten gryzak jest odpowiedni dla szczeniaka?", "Co zrobić, gdy zostanie mała końcówka gryzaka?").
+- Wygeneruj dokładnie 4 do 5 najczęściej zadawanych pytań (FAQ) dotyczących tego typu produktu i udziel na nie krótkich, uspokajających odpowiedzi (np. "Czy ten gryzak jest odpowiedni dla szczeniaka?", "Co zrobić, gdy zostanie mała końcówka gryzaka?"). To zwykłe, widoczne FAQ.
+
+6. DODATKOWE FAQ ROZWIJANE (na samym końcu, PO zwykłym FAQ):
+- Poprzedź nagłówkiem <h3>Więcej pytań i odpowiedzi</h3>.
+- Wygeneruj 3-4 DODATKOWE pytania (INNE niż w sekcji 5), każde rozwijane po kliknięciu.
+- Użyj DOKŁADNIE takiej struktury dla KAŻDEGO pytania:
+  <details><summary>Treść pytania?</summary><p>Odpowiedź eksperta.</p></details>
+- W treści <summary> NIE dodawaj emoji ani znaku "+" - plusik pojawi się automatycznie.
 
 Sformatuj całość czytelnie, używając pogrubień (<strong>) dla najważniejszych słów i nagłówków. Opis ma być gotowy do wklejenia na stronę sklepu internetowego.
 
@@ -36,7 +43,7 @@ Sformatuj całość czytelnie, używając pogrubień (<strong>) dla najważniejs
 - Wykorzystaj wszystkie konkretne dane ze starego opisu (wymiary, materiał, przeznaczenie, ostrzeżenia).
 
 ## FORMAT WYJŚCIA (bardzo ważne)
-- Zwróć WYŁĄCZNIE czysty kod HTML gotowy do wklejenia. Dozwolone tagi: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <b>, <em>, <table>, <thead>, <tbody>, <tr>, <th>, <td>.
+- Zwróć WYŁĄCZNIE czysty kod HTML gotowy do wklejenia. Dozwolone tagi: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <b>, <em>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <details>, <summary>.
 - ZAKAZ EMOJI: nie używaj ŻADNYCH emoji ani znaków ozdobnych (bez 🐾, ❤️, 🐶, 🦴 itp.) - one źle wyświetlają się na stronie. JEDYNY dozwolony znak to zielony ptaszek ✅ i tylko na początku punktów listy korzyści.
 - NIE dodawaj bloków markdown (bez \`\`\`), NIE dodawaj tagów <html>, <head>, <body>. Bez komentarzy przed ani po.
 - Tabele: bez atrybutów style/class, prosty <table> z wierszami <tr> i komórkami <th>/<td>.

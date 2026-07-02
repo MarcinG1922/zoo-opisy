@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zoo Opisy - Generator opisow produktow zoologicznych</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    :root {
+      --bg: #f2f8f4;
+      --card: #ffffff;
+      --ink: #1a2e22;
+      --muted: #5b7065;
+      --accent: #2e9e5b;
+      --accent-dark: #1f7a43;
+      --border: #cfe6d8;
+      --ok: #1f7a3e;
+      --err: #b3261e;
+      --warn: #b67200;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .container { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.5px; }
+    h2 { font-size: 18px; margin: 0 0 12px; color: var(--accent-dark); }
+    .subtitle { color: var(--muted); margin: 0 0 28px; font-size: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--ink); }
+    .hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+    .hint a { color: var(--accent-dark); }
+    input[type="text"], input[type="password"], input[type="number"], select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: #fff; color: var(--ink);
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    .row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 180px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    button {
+      background: var(--accent); color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    button:hover:not(:disabled) { background: var(--accent-dark); }
+    button:disabled { background: #c4b8a6; cursor: not-allowed; }
+    button.secondary { background: transparent; color: var(--accent-dark); border: 1px solid var(--border); }
+    button.secondary:hover:not(:disabled) { background: var(--bg); }
+    button.danger { background: var(--err); }
+    .dropzone {
+      border: 2px dashed var(--border); border-radius: 8px; padding: 32px 16px; text-align: center; cursor: pointer; transition: all 0.15s;
+    }
+    .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: #fbf6ed; }
+    .dropzone p { margin: 4px 0; color: var(--muted); font-size: 14px; }
+    .file-info { padding: 12px; background: #f6efe2; border-radius: 6px; font-size: 13px; margin-top: 12px; }
+    .file-info strong { color: var(--accent-dark); }
+    .progress-wrap { background: var(--border); border-radius: 4px; height: 8px; overflow: hidden; margin: 8px 0 12px; }
+    .progress-bar { background: var(--accent); height: 100%; width: 0%; transition: width 0.2s; }
+    .stats { display: flex; gap: 16px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+    .stats strong { color: var(--ink); }
+    .log { background: #1e1a14; color: #d4c9b3; font-family: "Consolas", "Monaco", monospace; font-size: 12px; padding: 12px; border-radius: 6px; max-height: 320px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+    .log .ok { color: #6ed47a; }
+    .log .err { color: #ff7066; }
+    .log .warn { color: #ffb84d; }
+    .log .info { color: #7fb4ff; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .checkbox-row input { width: auto; margin: 0; }
+    .checkbox-row label { margin: 0; font-weight: normal; font-size: 13px; }
+    .hidden { display: none !important; }
+    .footer-note { text-align: center; font-size: 12px; color: var(--muted); margin-top: 24px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge.ok { background: #e1f5e5; color: var(--ok); }
+    .badge.err { background: #fbe4e2; color: var(--err); }
+    .badge.warn { background: #fdf0d8; color: var(--warn); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Zoo Opisy 🐾</h1>
+    <p class="subtitle">Przepisywanie opisow produktow zoologicznych - stary opis 1:1 przerobiony wg promptu, ze ZDJECIAMI ze starego opisu. Upload CSV, pobierz wersje z nowymi opisami w kolumnie C.</p>
+
+    <!-- 1. Klucz API -->
+    <div class="card">
+      <h2>1. Dostawca AI i klucz API</h2>
+      <div class="row">
+        <div>
+          <label for="provider">Dostawca</label>
+          <select id="provider">
+            <option value="deepseek" selected>DeepSeek</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="anthropic">Anthropic (Claude)</option>
+          </select>
+        </div>
+        <div>
+          <label for="model">Model</label>
+          <select id="model">
+            <!-- wypelniane dynamicznie w JS -->
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top: 12px;">
+        <div style="flex: 3;">
+          <label for="apiKey" id="apiKeyLabel">Klucz API Gemini</label>
+          <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off" />
+          <p class="hint" id="apiKeyHint">Klucz jest przechowywany tylko w Twojej przegladarce. Wez go z <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.</p>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end;">
+          <button class="secondary" id="saveKeyBtn" type="button">Zapamietaj</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top: 12px;">
+        <div>
+          <label for="concurrency">Rownolegle requesty</label>
+          <input type="number" id="concurrency" value="5" min="1" max="20" step="1" />
+          <p class="hint">Ile opisow generowac jednoczesnie. 5 = ~5x szybciej. Zmniejsz jesli dostajesz HTTP 429 (rate limit).</p>
+        </div>
+        <div>
+          <label for="delay">Delay miedzy requestami (ms)</label>
+          <input type="number" id="delay" value="0" min="0" step="100" />
+          <p class="hint">Pauza po kazdym requeście w workerze. Zwykle 0 wystarczy gdy masz concurrency.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Plik CSV -->
+    <div class="card">
+      <h2>2. Plik CSV (BaseLinker)</h2>
+      <div class="dropzone" id="dropzone">
+        <p><strong>Kliknij lub przeciagnij plik CSV</strong></p>
+        <p>Wymagana kolumna: <code>opis</code> (kolumna C - stary opis ze zdjeciami). Separator: <code>,</code> lub <code>;</code> (auto-wykrycie). Kodowanie: UTF-8.</p>
+        <input type="file" id="fileInput" accept=".csv,text/csv" class="hidden" />
+      </div>
+      <div id="fileInfo" class="file-info hidden"></div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="skipExisting" />
+        <label for="skipExisting">Pomin wiersze ktore maja bardzo krotki opis (przyspiesza)</label>
+      </div>
+    </div>
+
+    <!-- 3. Start / progres -->
+    <div class="card">
+      <h2>3. Generowanie</h2>
+      <div class="actions">
+        <button id="startBtn" disabled type="button">Start</button>
+        <button id="cancelBtn" class="danger hidden" type="button">Anuluj</button>
+        <button id="downloadBtn" class="secondary hidden" type="button">Pobierz CSV</button>
+      </div>
+      <div id="progressArea" class="hidden" style="margin-top: 16px;">
+        <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="stats">
+          <span>Postep: <strong id="statDone">0</strong> / <strong id="statTotal">0</strong></span>
+          <span>OK: <strong id="statOk" class="badge ok">0</strong></span>
+          <span>Bledy: <strong id="statErr" class="badge err">0</strong></span>
+          <span>Pominiete: <strong id="statSkip" class="badge warn">0</strong></span>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+    <p class="footer-note">Zoo Opisy &middot; Generator opisow zoologicznych &middot; <span id="version">v1.0</span></p>
+  </div>
+
+  <script src="prompt.js"></script>
+  <script>
+    // ============== STATE ==============
+    const state = {
+      file: null,
+      parsed: null,        // { headers, rows, nameIdx, descIdx }
+      processing: false,
+      cancelled: false,
+      results: null,       // rows after processing
+      stats: { done: 0, ok: 0, err: 0, skip: 0, total: 0 },
+    };
+
+    // ============== PROVIDER CONFIG ==============
+    const PROVIDERS = {
+      gemini: {
+        label: 'Google Gemini',
+        keyLabel: 'Klucz API Gemini',
+        keyPlaceholder: 'AIza...',
+        keyHint: 'Klucz jest przechowywany tylko w Twojej przegladarce. Wez go z <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.',
+        storageKey: 'gemini_api_key',
+        models: [
+          { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash (szybki, tani)' },
+          { value: 'gemini-2.5-pro', label: 'gemini-2.5-pro (lepsza jakosc, wolniejszy)' },
+          { value: 'gemini-2.0-flash', label: 'gemini-2.0-flash (starszy fallback)' },
+        ],
+        defaultModel: 'gemini-2.5-flash',
+      },
+      anthropic: {
+        label: 'Anthropic (Claude)',
+        keyLabel: 'Klucz API Anthropic',
+        keyPlaceholder: 'sk-ant-...',
+        keyHint: 'Klucz jest przechowywany tylko w Twojej przegladarce. Wez go z <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console</a>. Wymagany kredyt na koncie.',
+        storageKey: 'anthropic_api_key',
+        models: [
+          { value: 'claude-sonnet-4-6', label: 'claude-sonnet-4-6 (zalecany - najnowszy Sonnet)' },
+          { value: 'claude-opus-4-7', label: 'claude-opus-4-7 (najlepsza jakosc, drozszy)' },
+          { value: 'claude-haiku-4-5-20251001', label: 'claude-haiku-4-5 (najszybszy, najtanszy)' },
+        ],
+        defaultModel: 'claude-sonnet-4-6',
+      },
+      deepseek: {
+        label: 'DeepSeek',
+        keyLabel: 'Klucz API DeepSeek',
+        keyPlaceholder: 'sk-...',
+        keyHint: 'Klucz jest przechowywany tylko w Twojej przegladarce. Wez go z <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">DeepSeek Platform</a>. Najtansza opcja - ~$0.28/1M tokenow output dla v4-flash.',
+        storageKey: 'deepseek_api_key',
+        models: [
+          { value: 'deepseek-v4-flash', label: 'deepseek-v4-flash (zalecany - szybki, tani)' },
+          { value: 'deepseek-v4-pro', label: 'deepseek-v4-pro (lepsza jakosc, 75% rabat do 31.05.2026)' },
+        ],
+        defaultModel: 'deepseek-v4-flash',
+      },
+    };
+
+    // ============== DOM REFS ==============
+    const el = {
+      provider: document.getElementById('provider'),
+      apiKey: document.getElementById('apiKey'),
+      apiKeyLabel: document.getElementById('apiKeyLabel'),
+      apiKeyHint: document.getElementById('apiKeyHint'),
+      saveKeyBtn: document.getElementById('saveKeyBtn'),
+      model: document.getElementById('model'),
+      delay: document.getElementById('delay'),
+      concurrency: document.getElementById('concurrency'),
+      dropzone: document.getElementById('dropzone'),
+      fileInput: document.getElementById('fileInput'),
+      fileInfo: document.getElementById('fileInfo'),
+      skipExisting: document.getElementById('skipExisting'),
+      startBtn: document.getElementById('startBtn'),
+      cancelBtn: document.getElementById('cancelBtn'),
+      downloadBtn: document.getElementById('downloadBtn'),
+      progressArea: document.getElementById('progressArea'),
+      progressBar: document.getElementById('progressBar'),
+      statDone: document.getElementById('statDone'),
+      statTotal: document.getElementById('statTotal'),
+      statOk: document.getElementById('statOk'),
+      statErr: document.getElementById('statErr'),
+      statSkip: document.getElementById('statSkip'),
+      log: document.getElementById('log'),
+    };
+
+    // ============== INIT ==============
+    function applyProvider(providerName) {
+      const cfg = PROVIDERS[providerName];
+      if (!cfg) return;
+      el.apiKeyLabel.textContent = cfg.keyLabel;
+      el.apiKey.placeholder = cfg.keyPlaceholder;
+      el.apiKeyHint.innerHTML = cfg.keyHint;
+      el.apiKey.value = localStorage.getItem(cfg.storageKey) || '';
+      // Modele
+      el.model.innerHTML = '';
+      cfg.models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.value;
+        opt.textContent = m.label;
+        el.model.appendChild(opt);
+      });
+      const savedModel = localStorage.getItem('model_' + providerName);
+      el.model.value = savedModel && cfg.models.some(m => m.value === savedModel) ? savedModel : cfg.defaultModel;
+    }
+
+    (function init() {
+      const savedProvider = localStorage.getItem('provider') || 'deepseek';
+      el.provider.value = PROVIDERS[savedProvider] ? savedProvider : 'deepseek';
+      applyProvider(el.provider.value);
+      const savedDelay = localStorage.getItem('delay');
+      if (savedDelay !== null) el.delay.value = savedDelay;
+      const savedConcurrency = localStorage.getItem('concurrency');
+      if (savedConcurrency) el.concurrency.value = savedConcurrency;
+    })();
+
+    // ============== UI HANDLERS ==============
+    el.provider.addEventListener('change', () => {
+      localStorage.setItem('provider', el.provider.value);
+      applyProvider(el.provider.value);
+    });
+    el.model.addEventListener('change', () => {
+      localStorage.setItem('model_' + el.provider.value, el.model.value);
+    });
+    el.saveKeyBtn.addEventListener('click', () => {
+      const cfg = PROVIDERS[el.provider.value];
+      if (el.apiKey.value.trim()) {
+        localStorage.setItem(cfg.storageKey, el.apiKey.value.trim());
+        localStorage.setItem('provider', el.provider.value);
+        localStorage.setItem('model_' + el.provider.value, el.model.value);
+        localStorage.setItem('delay', el.delay.value);
+        localStorage.setItem('concurrency', el.concurrency.value);
+        flash(el.saveKeyBtn, 'Zapisano');
+      }
+    });
+
+    el.dropzone.addEventListener('click', () => el.fileInput.click());
+    el.dropzone.addEventListener('dragover', (e) => { e.preventDefault(); el.dropzone.classList.add('drag'); });
+    el.dropzone.addEventListener('dragleave', () => el.dropzone.classList.remove('drag'));
+    el.dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      el.dropzone.classList.remove('drag');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    el.fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    el.startBtn.addEventListener('click', startProcessing);
+    el.cancelBtn.addEventListener('click', () => {
+      state.cancelled = true;
+      log('Anulowanie po biezacym wierszu...', 'warn');
+    });
+    el.downloadBtn.addEventListener('click', downloadResult);
+
+    // ============== FILE HANDLING ==============
+    function handleFile(file) {
+      state.file = file;
+      state.parsed = null;
+      state.results = null;
+      el.downloadBtn.classList.add('hidden');
+      el.fileInfo.classList.remove('hidden');
+      el.fileInfo.innerHTML = `Wczytuje plik <strong>${escapeHtml(file.name)}</strong>...`;
+
+      Papa.parse(file, {
+        header: true,
+        delimiter: '',         // pusty = PapaParse auto-wykryje (',', ';', '\t', '|')
+        delimitersToGuess: [';', ',', '\t', '|'],
+        skipEmptyLines: true,
+        encoding: 'UTF-8',
+        complete: (res) => {
+          if (res.errors && res.errors.length) {
+            console.warn('Parse warnings:', res.errors);
+          }
+          const headers = (res.meta.fields || []).map(h => (h || '').replace(/^﻿/, '').trim());
+          // PapaParse ustawia oryginalne nazwy w rows - musimy je tez znormalizowac
+          const rawHeaders = res.meta.fields || [];
+          const rows = res.data.map(r => {
+            const out = {};
+            rawHeaders.forEach((rh, i) => {
+              const cleanKey = headers[i];
+              out[cleanKey] = r[rh];
+            });
+            return out;
+          });
+          const detectedDelim = res.meta.delimiter || ',';
+
+          const descIdx = headers.indexOf('opis');
+
+          if (headers.length <= 1) {
+            el.fileInfo.innerHTML = `<span style="color: var(--err);">Blad: wykryto tylko ${headers.length} kolumne. Plik prawdopodobnie ma nietypowy separator. Zapisz CSV z separatorem <code>,</code> lub <code>;</code>.</span>`;
+            el.startBtn.disabled = true;
+            return;
+          }
+          if (descIdx === -1) {
+            el.fileInfo.innerHTML = `<span style="color: var(--err);">Blad: w pliku brakuje kolumny <code>opis</code>.</span><br>` +
+              `Separator: <code>${escapeHtml(detectedDelim === '\t' ? '\\t (tab)' : detectedDelim)}</code><br>` +
+              `Wykryte kolumny (${headers.length}): ${headers.map(h => '<code>'+escapeHtml(h)+'</code>').join(', ')}`;
+            el.startBtn.disabled = true;
+            return;
+          }
+          // Policz zdjecia w opisach (dla podgladu)
+          let totalImgs = 0;
+          const withDesc = rows.filter(r => {
+            const d = (r.opis || '').trim();
+            if (d) { const m = d.match(/<img[^>]+src="[^"]+"/gi); totalImgs += m ? m.length : 0; }
+            return d;
+          }).length;
+          state.parsed = { headers, rows, descIdx, delimiter: detectedDelim };
+          const delimDisplay = detectedDelim === '\t' ? '\\t (tab)' : detectedDelim;
+          el.fileInfo.innerHTML = `Plik: <strong>${escapeHtml(file.name)}</strong><br>` +
+            `Wierszy: <strong>${rows.length}</strong> &middot; Z opisem: <strong>${withDesc}</strong> &middot; Zdjec w opisach: <strong>${totalImgs}</strong><br>` +
+            `Kolumn: <strong>${headers.length}</strong> &middot; Separator: <code>${escapeHtml(delimDisplay)}</code> (zachowany przy zapisie)`;
+          el.startBtn.disabled = false;
+        },
+        error: (err) => {
+          el.fileInfo.innerHTML = `<span style="color: var(--err);">Blad parsowania: ${escapeHtml(err.message || String(err))}</span>`;
+          el.startBtn.disabled = true;
+        }
+      });
+    }
+
+    // ============== PROCESSING ==============
+    async function startProcessing() {
+      const apiKey = el.apiKey.value.trim();
+      if (!apiKey) { alert('Wpisz klucz API.'); return; }
+      if (!state.parsed) { alert('Wczytaj najpierw plik CSV.'); return; }
+
+      const { rows } = state.parsed;
+      state.processing = true;
+      state.cancelled = false;
+      state.results = rows.map(r => ({ ...r }));
+      state.stats = { done: 0, ok: 0, err: 0, skip: 0, total: rows.length };
+
+      el.startBtn.classList.add('hidden');
+      el.cancelBtn.classList.remove('hidden');
+      el.downloadBtn.classList.add('hidden');
+      el.progressArea.classList.remove('hidden');
+      el.log.innerHTML = '';
+      updateStats();
+
+      const providerName = el.provider.value;
+      const model = el.model.value;
+      const delayMs = parseInt(el.delay.value, 10) || 0;
+      const concurrency = Math.max(1, Math.min(20, parseInt(el.concurrency.value, 10) || 1));
+      const skipExisting = el.skipExisting.checked;
+
+      log(`Start: ${rows.length} produktow, ${providerName} / ${model}, concurrency=${concurrency}, delay=${delayMs}ms`, 'info');
+      const t0 = Date.now();
+
+      // Worker pool - kolejka indeksow, N workerow pobiera kolejne
+      const total = state.results.length;
+      let nextIdx = 0;
+
+      async function processOne(i) {
+        const row = state.results[i];
+        const oldOpis = (row.opis || '').trim();
+
+        if (!oldOpis) {
+          state.stats.skip++;
+          log(`[${i + 1}/${total}] (pusty opis - pomijam)`, 'warn');
+          return;
+        }
+        if (skipExisting && oldOpis.length < 200) {
+          state.stats.skip++;
+          log(`[${i + 1}/${total}] (bardzo krotki opis, skipExisting - pomijam)`, 'warn');
+          return;
+        }
+
+        // Wyciagnij nazwe, tekst i zdjecia ze starego opisu
+        const parsed = parseOldDescription(oldOpis);
+        const label = truncate(parsed.name || ('wiersz ' + (i + 1)));
+        const prompt = buildPrompt(parsed.name, parsed.plainText, parsed.images.length);
+
+        try {
+          let response;
+          if (providerName === 'anthropic') {
+            response = await callClaude(apiKey, model, prompt);
+          } else if (providerName === 'deepseek') {
+            response = await callDeepSeek(apiKey, model, prompt);
+          } else {
+            response = await callGemini(apiKey, model, prompt);
+          }
+          const assembled = assembleDescription(response, parsed.images);
+          if (!assembled.html) {
+            state.stats.err++;
+            log(`[${i + 1}/${total}] ${label} - BLAD: pusta odpowiedz modelu`, 'err');
+          } else {
+            row.opis = assembled.html;
+            state.stats.ok++;
+            const imgInfo = parsed.images.length
+              ? `, zdjec ${assembled.imagesUsed}/${parsed.images.length}${assembled.appended ? ' (' + assembled.appended + ' dopiete na koncu)' : ''}`
+              : ', bez zdjec';
+            log(`[${i + 1}/${total}] ${label} OK (${assembled.html.length} znakow${imgInfo})`, assembled.appended ? 'warn' : 'ok');
+          }
+        } catch (e) {
+          state.stats.err++;
+          log(`[${i + 1}/${total}] ${label} - BLAD: ${e.message}`, 'err');
+        }
+      }
+
+      async function worker(workerId) {
+        while (!state.cancelled) {
+          const i = nextIdx++;
+          if (i >= total) return;
+          await processOne(i);
+          state.stats.done++;
+          updateStats();
+          if (delayMs > 0 && nextIdx < total && !state.cancelled) {
+            await sleep(delayMs);
+          }
+        }
+      }
+
+      const workers = [];
+      for (let w = 0; w < concurrency; w++) workers.push(worker(w));
+      await Promise.all(workers);
+
+      const dt = ((Date.now() - t0) / 1000).toFixed(1);
+      const rate = total > 0 ? (state.stats.done / (dt / 60)).toFixed(1) : '0';
+      if (state.cancelled) log(`Anulowane. Przetworzono ${state.stats.done}/${total} w ${dt}s.`, 'warn');
+
+      state.processing = false;
+      el.cancelBtn.classList.add('hidden');
+      el.startBtn.classList.remove('hidden');
+      el.downloadBtn.classList.remove('hidden');
+      log(`Zakonczono w ${dt}s (~${rate} opisow/min). OK: ${state.stats.ok}, bledy: ${state.stats.err}, pominiete: ${state.stats.skip}`, 'info');
+    }
+
+    // ============== GEMINI API ==============
+    async function callGemini(apiKey, model, prompt, attempt = 0) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const body = {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        }
+      };
+      let resp;
+      try {
+        resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } catch (netErr) {
+        if (attempt < 2) {
+          await sleep(1000 * Math.pow(3, attempt));
+          return callGemini(apiKey, model, prompt, attempt + 1);
+        }
+        throw new Error('Network error: ' + netErr.message);
+      }
+
+      if (resp.status === 429 || resp.status >= 500) {
+        if (attempt < 2) {
+          const wait = 1000 * Math.pow(3, attempt);
+          log(`HTTP ${resp.status} - retry za ${wait}ms...`, 'warn');
+          await sleep(wait);
+          return callGemini(apiKey, model, prompt, attempt + 1);
+        }
+      }
+      if (!resp.ok) {
+        let errMsg = `HTTP ${resp.status}`;
+        try {
+          const j = await resp.json();
+          if (j.error && j.error.message) errMsg += ` - ${j.error.message}`;
+        } catch {}
+        throw new Error(errMsg);
+      }
+
+      const data = await resp.json();
+      const candidate = data.candidates && data.candidates[0];
+      if (!candidate) throw new Error('Brak odpowiedzi (candidates pusty)');
+      if (candidate.finishReason && candidate.finishReason !== 'STOP' && candidate.finishReason !== 'MAX_TOKENS') {
+        throw new Error('finishReason=' + candidate.finishReason);
+      }
+      const text = (candidate.content && candidate.content.parts || []).map(p => p.text || '').join('');
+      if (!text) throw new Error('Pusta odpowiedz modelu');
+      return text;
+    }
+
+    // ============== ANTHROPIC API ==============
+    async function callClaude(apiKey, model, prompt, attempt = 0) {
+      const url = 'https://api.anthropic.com/v1/messages';
+      const body = {
+        model: model,
+        max_tokens: 8000,
+        temperature: 0.7,
+        messages: [{ role: 'user', content: prompt }],
+      };
+      let resp;
+      try {
+        resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify(body),
+        });
+      } catch (netErr) {
+        if (attempt < 2) {
+          await sleep(1000 * Math.pow(3, attempt));
+          return callClaude(apiKey, model, prompt, attempt + 1);
+        }
+        throw new Error('Network error: ' + netErr.message);
+      }
+
+      if (resp.status === 429 || resp.status === 529 || resp.status >= 500) {
+        if (attempt < 2) {
+          const wait = 1000 * Math.pow(3, attempt);
+          log(`HTTP ${resp.status} - retry za ${wait}ms...`, 'warn');
+          await sleep(wait);
+          return callClaude(apiKey, model, prompt, attempt + 1);
+        }
+      }
+      if (!resp.ok) {
+        let errMsg = `HTTP ${resp.status}`;
+        try {
+          const j = await resp.json();
+          if (j.error && j.error.message) errMsg += ` - ${j.error.message}`;
+        } catch {}
+        throw new Error(errMsg);
+      }
+
+      const data = await resp.json();
+      if (data.stop_reason && data.stop_reason !== 'end_turn' && data.stop_reason !== 'max_tokens') {
+        throw new Error('stop_reason=' + data.stop_reason);
+      }
+      const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+      if (!text) throw new Error('Pusta odpowiedz modelu');
+      return text;
+    }
+
+    // ============== DEEPSEEK API (OpenAI-compatible) ==============
+    async function callDeepSeek(apiKey, model, prompt, attempt = 0) {
+      const url = 'https://api.deepseek.com/chat/completions';
+      const body = {
+        model: model,
+        max_tokens: 8000,
+        temperature: 0.7,
+        messages: [{ role: 'user', content: prompt }],
+      };
+      let resp;
+      try {
+        resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey,
+          },
+          body: JSON.stringify(body),
+        });
+      } catch (netErr) {
+        if (attempt < 2) {
+          await sleep(1000 * Math.pow(3, attempt));
+          return callDeepSeek(apiKey, model, prompt, attempt + 1);
+        }
+        throw new Error('Network error: ' + netErr.message);
+      }
+
+      if (resp.status === 429 || resp.status >= 500) {
+        if (attempt < 2) {
+          const wait = 1000 * Math.pow(3, attempt);
+          log(`HTTP ${resp.status} - retry za ${wait}ms...`, 'warn');
+          await sleep(wait);
+          return callDeepSeek(apiKey, model, prompt, attempt + 1);
+        }
+      }
+      if (!resp.ok) {
+        let errMsg = `HTTP ${resp.status}`;
+        try {
+          const j = await resp.json();
+          if (j.error && j.error.message) errMsg += ` - ${j.error.message}`;
+          else if (j.message) errMsg += ` - ${j.message}`;
+        } catch {}
+        throw new Error(errMsg);
+      }
+
+      const data = await resp.json();
+      const choice = data.choices && data.choices[0];
+      if (!choice) throw new Error('Brak odpowiedzi (choices pusty)');
+      if (choice.finish_reason && choice.finish_reason !== 'stop' && choice.finish_reason !== 'length') {
+        throw new Error('finish_reason=' + choice.finish_reason);
+      }
+      const text = (choice.message && choice.message.content) || '';
+      if (!text) throw new Error('Pusta odpowiedz modelu');
+      return text;
+    }
+
+    // Czysci odpowiedz z ogrodzen ```html i tagow html/body
+    function cleanModelHtml(text) {
+      let t = (text || '').trim();
+      t = t.replace(/^```html\s*\n?/i, '').replace(/^```\s*\n?/, '');
+      t = t.replace(/\n?```\s*$/i, '');
+      t = t.replace(/<\/?(?:html|head|body)[^>]*>/gi, '');
+      return t.trim();
+    }
+
+    function wrapTextSection(inner) {
+      return `<section class="section">\n\t<div class="item item-12">\n\t\t<section class="text-item">\n${inner}\n\t\t</section>\n\t</div>\n</section>`;
+    }
+    function wrapImageSection(src) {
+      return `<section class="section">\n\t<div class="item item-12">\n\t\t<section class="image-item"><img src="${src}"></section>\n\t</div>\n</section>`;
+    }
+
+    // Sklada finalny opis: zamienia [[IMG_n]] na prawdziwe zdjecia,
+    // owija tekst w sekcje platformy, dopina brakujace zdjecia na koncu.
+    // Zwraca { html, imagesUsed, appended }
+    function assembleDescription(response, images) {
+      const cleaned = cleanModelHtml(response);
+      if (!cleaned) return { html: '', imagesUsed: 0, appended: 0 };
+
+      const used = new Set();
+      const parts = cleaned.split(/\[\[IMG_(\d+)\]\]/g);
+      let out = '';
+      for (let i = 0; i < parts.length; i++) {
+        if (i % 2 === 0) {
+          const seg = parts[i].trim();
+          if (seg) out += wrapTextSection(seg) + '\n\n';
+        } else {
+          const idx = parseInt(parts[i], 10) - 1;
+          if (idx >= 0 && idx < images.length && !used.has(idx)) {
+            out += wrapImageSection(images[idx]) + '\n\n';
+            used.add(idx);
+          }
+        }
+      }
+      // Dopnij zdjecia ktorych model nie wstawil - zeby ZADNE nie zginelo
+      let appended = 0;
+      images.forEach((src, idx) => {
+        if (!used.has(idx)) { out += wrapImageSection(src) + '\n\n'; used.add(idx); appended++; }
+      });
+
+      return { html: out.trim(), imagesUsed: used.size, appended };
+    }
+
+    // ============== DOWNLOAD ==============
+    function downloadResult() {
+      if (!state.results || !state.parsed) return;
+      const csv = Papa.unparse({
+        fields: state.parsed.headers,
+        data: state.results,
+      }, {
+        delimiter: state.parsed.delimiter || ',',
+        quotes: true,
+        newline: '\r\n',
+      });
+      // UTF-8 BOM zeby Excel poprawnie pokazal polskie znaki
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const origName = (state.file && state.file.name || 'produkty.csv').replace(/\.csv$/i, '');
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
+      a.href = url;
+      a.download = `${origName}_AI_${ts}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // ============== UTILS ==============
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    function truncate(s, n = 60) { return s.length > n ? s.slice(0, n - 1) + '...' : s; }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function log(msg, cls = '') {
+      const line = document.createElement('div');
+      if (cls) line.className = cls;
+      line.textContent = msg;
+      el.log.appendChild(line);
+      el.log.scrollTop = el.log.scrollHeight;
+    }
+    function updateStats() {
+      const { done, ok, err, skip, total } = state.stats;
+      el.statDone.textContent = done;
+      el.statTotal.textContent = total;
+      el.statOk.textContent = ok;
+      el.statErr.textContent = err;
+      el.statSkip.textContent = skip;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      el.progressBar.style.width = pct + '%';
+    }
+    function flash(btn, text) {
+      const orig = btn.textContent;
+      btn.textContent = text;
+      btn.disabled = true;
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1200);
+    }
+  </script>
+</body>
+</html>
